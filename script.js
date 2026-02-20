@@ -5,7 +5,6 @@ const AUTOCLICK_FLASH_MS = 140;
 const UNLOCK_ADVISOR_BONUS_CLICKS = 1;
 const FIRST_MANAGER_ADVISOR_BOOST = 1.15;
 const FIRST_MANAGER_PREFERENCE_MULTIPLIER = 1.35;
-const UNLOCK_WHEN_FIRST_MANAGER_AVAILABLE_MULTIPLIER = 0.7;
 
 const ITEMS = Array.from({ length: 10 }, (_, index) => {
   const baseIncome = Number((0.1 * Math.pow(1.8, index)).toFixed(2));
@@ -260,7 +259,7 @@ function getBestNextPurchase() {
     }
 
     if (hasFirstManagerCandidate && candidate.isFirstUnlock) {
-      advisorScore *= UNLOCK_WHEN_FIRST_MANAGER_AVAILABLE_MULTIPLIER;
+      advisorScore = 0;
     }
 
     candidate.advisorScore = advisorScore;
