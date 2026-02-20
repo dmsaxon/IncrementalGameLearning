@@ -14,6 +14,7 @@ body {
   place-items: center;
   background: #1f2430;
   color: #e5e7eb;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .game {
@@ -112,8 +113,8 @@ body {
 }
 
 .circle {
-  width: 86px;
-  height: 86px;
+  width: 92px;
+  height: 92px;
   border-radius: 50%;
   border: 2px solid #8ea2ff;
   --fill-level: 0%;
@@ -128,6 +129,7 @@ body {
   font-weight: 700;
   cursor: pointer;
   transition: background 100ms linear;
+  touch-action: manipulation;
 }
 
 .circle:disabled {
@@ -153,11 +155,13 @@ body {
   width: 100%;
   border: 0;
   border-radius: 0.45rem;
-  padding: 0.45rem;
+  min-height: 44px;
+  padding: 0.55rem;
   font-weight: 700;
   background: #8ea2ff;
   color: #1e2230;
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 .buy-button:disabled {
@@ -181,10 +185,17 @@ body {
 
   .debug-toggle {
     width: 100%;
+    min-height: 44px;
+    padding: 0.5rem 0.75rem;
   }
 
   .items-grid {
-    grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+    gap: 0.7rem;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  }
+
+  .item-card {
+    padding: 0.8rem;
   }
 
   .debug-advisor {
@@ -217,11 +228,17 @@ body {
   }
 
   .circle {
-    width: 76px;
-    height: 76px;
+    width: 86px;
+    height: 86px;
   }
 
   .items-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
+  }
+
+  .item-name,
+  .item-detail,
+  .item-status {
+    font-size: 0.95rem;
   }
 }
