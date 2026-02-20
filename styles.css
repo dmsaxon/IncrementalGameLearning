@@ -164,3 +164,64 @@ body {
   cursor: not-allowed;
   opacity: 0.5;
 }
+
+@media (max-width: 900px) {
+  body {
+    display: block;
+  }
+
+  .game {
+    width: 100%;
+    padding: 1rem;
+  }
+
+  .balance {
+    font-size: 1.7rem;
+  }
+
+  .debug-toggle {
+    width: 100%;
+  }
+
+  .items-grid {
+    grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+  }
+
+  .debug-advisor {
+    left: 0.75rem;
+    right: 0.75rem;
+    top: auto;
+    bottom: 0.75rem;
+    width: auto;
+    max-height: 40vh;
+    overflow: auto;
+  }
+}
+
+@media (max-width: 560px) {
+  .stats-label-row,
+  .stats-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
+  }
+
+  .balance-label,
+  .dps-label,
+  .dps {
+    text-align: left;
+  }
+
+  .balance {
+    font-size: 1.45rem;
+  }
+
+  .circle {
+    width: 76px;
+    height: 76px;
+  }
+
+  .items-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
