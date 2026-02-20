@@ -1,0 +1,114 @@
+:root {
+  color-scheme: light dark;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background: #1f2430;
+  color: #e5e7eb;
+}
+
+.game {
+  width: min(980px, 92vw);
+  padding: 1.25rem;
+}
+
+.game-header {
+  margin-bottom: 1rem;
+}
+
+.game-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.balance-label {
+  margin: 0.75rem 0 0.1rem;
+  opacity: 0.9;
+}
+
+.balance {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.instructions {
+  margin: 0 0 1rem;
+  opacity: 0.9;
+}
+
+.items-grid {
+  display: grid;
+  gap: 0.9rem;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+
+.item-card {
+  border: 1px solid #394152;
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  background: #2a3140;
+}
+
+.circle {
+  width: 86px;
+  height: 86px;
+  border-radius: 50%;
+  border: 2px solid #8ea2ff;
+  --fill-level: 0%;
+  background: radial-gradient(
+    circle,
+    #f4da4a 0%,
+    #f4da4a var(--fill-level),
+    #445078 var(--fill-level),
+    #445078 100%
+  );
+  color: #f3f4f6;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 100ms linear;
+}
+
+.circle:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  border-color: #56607a;
+  background: #3a3f4d;
+}
+
+.item-name {
+  margin: 0.55rem 0 0.2rem;
+  font-weight: 700;
+}
+
+.item-detail,
+.item-status {
+  margin: 0.15rem 0;
+  font-size: 0.9rem;
+}
+
+.buy-button {
+  margin-top: 0.45rem;
+  width: 100%;
+  border: 0;
+  border-radius: 0.45rem;
+  padding: 0.45rem;
+  font-weight: 700;
+  background: #8ea2ff;
+  color: #1e2230;
+  cursor: pointer;
+}
+
+.buy-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
