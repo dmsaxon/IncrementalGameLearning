@@ -35,10 +35,32 @@ body {
   opacity: 0.9;
 }
 
+.stats-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
+.dps-label {
+  text-align: right;
+}
+
 .balance {
   margin: 0;
   font-size: 2rem;
   font-weight: 700;
+}
+
+.stats-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
+.dps {
+  text-align: right;
 }
 
 .debug-toggle {
@@ -50,6 +72,25 @@ body {
   color: #e5e7eb;
   font-weight: 700;
   cursor: pointer;
+}
+
+.debug-advisor {
+  position: fixed;
+  left: 1rem;
+  top: 1rem;
+  width: min(280px, 28vw);
+  padding: 0.75rem;
+  border: 1px solid #8ea2ff;
+  border-radius: 0.65rem;
+  background: #2a3140;
+  color: #e5e7eb;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  display: none;
+}
+
+.debug-advisor.is-visible {
+  display: block;
 }
 
 .instructions {

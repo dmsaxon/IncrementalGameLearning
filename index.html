@@ -7,11 +7,18 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <aside id="debug-advisor" class="debug-advisor" aria-live="polite"></aside>
   <main class="game">
     <header class="game-header">
       <h1>Incremental Clicker</h1>
-      <p class="balance-label">Balance</p>
-      <p id="balance" class="balance">$0.00</p>
+      <div class="stats-label-row">
+        <p class="balance-label">Balance</p>
+        <p class="balance-label dps-label">$/sec</p>
+      </div>
+      <div class="stats-row">
+        <p id="balance" class="balance">$0.00</p>
+        <p id="dps" class="balance dps">$0.00</p>
+      </div>
       <button id="debug-toggle" class="debug-toggle" type="button" aria-pressed="false">Debug: OFF</button>
     </header>
 

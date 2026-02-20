@@ -28,8 +28,10 @@ const state = {
 };
 
 const balanceEl = document.getElementById("balance");
+const dpsEl = document.getElementById("dps");
 const itemsEl = document.getElementById("items");
 const debugToggleEl = document.getElementById("debug-toggle");
+const debugAdvisorEl = document.getElementById("debug-advisor");
 
 function formatDollars(value) {
   return `$${value.toFixed(2)}`;
@@ -98,7 +100,141 @@ function getDebugDollarsPerSecond(itemId) {
     return null;
   }
 
-  return Number((getClickValue(itemId) / managerClicksPerSecond).toFixed(2));
+  return Number((getClickValue(itemId) * managerClicksPerSecond).toFixed(2));
+}
+
+function updateBalanceDisplay() {
+  balanceEl.textContent = formatDollars(state.money);
+}
+
+function getCurrentDollarsPerSecond() {
+  let totalDps = 0;
+
+  ITEMS.forEach((item) => {
+    if (!isUnlocked(item.id)) {
+      return;
+    }
+
+    totalDps += getClickValue(item.id) * getManagerClicksPerSecond(item.id);
+  });
+
+  return Number(totalDps.toFixed(2));
+}
+
+function updateDpsDisplay() {
+  dpsEl.textContent = formatDollars(getCurrentDollarsPerSecond());
+}
+
+function updateCircleFillVisuals() {
+  const now = Date.now();
+
+  ITEMS.forEach((item) => {
+    const circle = itemsEl.querySelector(`.circle[data-item-id="${item.id}"]`);
+    if (!circle) {
+      return;
+    }
+
+    const unlocked = isUnlocked(item.id);
+    const managerCount = state.managers[item.id];
+
+    if (!unlocked || managerCount <= 0) {
+      circle.style.setProperty("--fill-level", "0%");
+      return;
+    }
+
+    const managerDelay = getManagerDelaySeconds(item.id);
+    const progress = Math.min(1, state.managerProgress[item.id] / managerDelay);
+    const isFlashing = now < state.managerFlashUntil[item.id];
+    const fillPercent = isFlashing ? "100%" : `${(progress * 100).toFixed(1)}%`;
+    circle.style.setProperty("--fill-level", fillPercent);
+  });
+}
+
+function updateAffordabilityDisplay() {
+  ITEMS.forEach((item) => {
+    const unlocked = isUnlocked(item.id);
+    const nextCost = getNextCost(item.id);
+    const canAfford = state.money >= nextCost;
+
+    const buyButton = itemsEl.querySelector(`.buy-button[data-role="item"][data-item-id="${item.id}"]`);
+    if (buyButton) {
+      buyButton.disabled = !canAfford;
+      buyButton.textContent = canAfford
+        ? `Buy +1 for ${formatDollars(nextCost)}`
+        : `Need ${formatDollars(nextCost)}`;
+    }
+
+    const nextManagerCost = getNextManagerCost(item.id);
+    const canAffordManager = unlocked && state.money >= nextManagerCost;
+    const managerButton = itemsEl.querySelector(
+      `.buy-button[data-role="manager"][data-item-id="${item.id}"]`,
+    );
+
+    if (managerButton) {
+      managerButton.disabled = !canAffordManager;
+      managerButton.textContent = !unlocked
+        ? "Unlock item first to hire managers"
+        : canAffordManager
+          ? `Hire manager +1 for ${formatDollars(nextManagerCost)}`
+          : `Need ${formatDollars(nextManagerCost)} for manager`;
+    }
+  });
+}
+
+function getBestNextPurchase() {
+  const candidates = [];
+
+  ITEMS.forEach((item) => {
+    const itemCost = getNextCost(item.id);
+    const itemDpsGain = item.baseIncome * getManagerClicksPerSecond(item.id);
+    if (itemCost > 0) {
+      candidates.push({
+        type: "Item",
+        label: `${item.name} level +1`,
+        cost: itemCost,
+        dpsGain: itemDpsGain,
+        efficiency: itemDpsGain / itemCost,
+      });
+    }
+
+    if (isUnlocked(item.id)) {
+      const managerCost = getNextManagerCost(item.id);
+      const managerDpsGain = getClickValue(item.id) / AUTOCLICK_BASE_DELAY_SECONDS;
+      candidates.push({
+        type: "Manager",
+        label: `${item.name} manager +1`,
+        cost: managerCost,
+        dpsGain: managerDpsGain,
+        efficiency: managerDpsGain / managerCost,
+      });
+    }
+  });
+
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  candidates.sort((a, b) => b.efficiency - a.efficiency);
+  return candidates[0];
+}
+
+function updateDebugAdvisorDisplay() {
+  if (!state.debug) {
+    debugAdvisorEl.classList.remove("is-visible");
+    debugAdvisorEl.textContent = "";
+    return;
+  }
+
+  const best = getBestNextPurchase();
+  debugAdvisorEl.classList.add("is-visible");
+
+  if (!best || best.efficiency <= 0) {
+    debugAdvisorEl.textContent = "Debug advisor: No positive $/sec purchase available right now.";
+    return;
+  }
+
+  const affordability = state.money >= best.cost ? "Affordable now" : `Need ${formatDollars(best.cost - state.money)} more`;
+  debugAdvisorEl.textContent = `Debug advisor\nBest next buy: ${best.type} - ${best.label}\nCost: ${formatDollars(best.cost)}\n$/sec gain: ${formatDollars(best.dpsGain)}\nEfficiency: ${best.efficiency.toFixed(4)} $/sec per $\n${affordability}`;
 }
 
 function getClickValue(itemId) {
@@ -171,7 +307,6 @@ function buyManager(itemId) {
 
 function runAutoclickTick() {
   let totalEarned = 0;
-  let hasActiveManagers = false;
   const tickSeconds = AUTOCLICK_TICK_MS / 1000;
   const now = Date.now();
 
@@ -182,7 +317,6 @@ function runAutoclickTick() {
       return;
     }
 
-    hasActiveManagers = true;
     const managerDelay = getManagerDelaySeconds(item.id);
     state.managerProgress[item.id] += tickSeconds;
 
@@ -196,11 +330,13 @@ function runAutoclickTick() {
   if (totalEarned > 0) {
     state.money = Number((state.money + totalEarned).toFixed(2));
     saveState();
+    updateBalanceDisplay();
+    updateDpsDisplay();
+    updateAffordabilityDisplay();
+    updateDebugAdvisorDisplay();
   }
 
-  if (hasActiveManagers || totalEarned > 0) {
-    render();
-  }
+  updateCircleFillVisuals();
 }
 
 function renderItem(item) {
@@ -219,17 +355,10 @@ function renderItem(item) {
   const circle = document.createElement("button");
   circle.className = "circle";
   circle.type = "button";
+  circle.dataset.itemId = String(item.id);
   circle.disabled = !unlocked;
   circle.textContent = unlocked ? "Click" : "Locked";
-  if (unlocked && managerCount > 0) {
-    const managerDelay = getManagerDelaySeconds(item.id);
-    const progress = Math.min(1, state.managerProgress[item.id] / managerDelay);
-    const isFlashing = Date.now() < state.managerFlashUntil[item.id];
-    const fillPercent = isFlashing ? "100%" : `${(progress * 100).toFixed(1)}%`;
-    circle.style.setProperty("--fill-level", fillPercent);
-  } else {
-    circle.style.setProperty("--fill-level", "0%");
-  }
+  circle.style.setProperty("--fill-level", "0%");
   circle.addEventListener("click", () => clickItem(item.id));
 
   const name = document.createElement("p");
@@ -265,6 +394,8 @@ function renderItem(item) {
   const buyButton = document.createElement("button");
   buyButton.className = "buy-button";
   buyButton.type = "button";
+  buyButton.dataset.role = "item";
+  buyButton.dataset.itemId = String(item.id);
   buyButton.disabled = !canAfford;
   buyButton.textContent = canAfford
     ? `Buy +1 for ${formatDollars(nextCost)}`
@@ -275,6 +406,8 @@ function renderItem(item) {
   const managerButton = document.createElement("button");
   managerButton.className = "buy-button";
   managerButton.type = "button";
+  managerButton.dataset.role = "manager";
+  managerButton.dataset.itemId = String(item.id);
   managerButton.disabled = !canAffordManager;
   managerButton.textContent = !unlocked
     ? "Unlock item first to hire managers"
@@ -288,7 +421,8 @@ function renderItem(item) {
 }
 
 function render() {
-  balanceEl.textContent = formatDollars(state.money);
+  updateBalanceDisplay();
+  updateDpsDisplay();
   debugToggleEl.textContent = state.debug ? "Debug: ON" : "Debug: OFF";
   debugToggleEl.setAttribute("aria-pressed", String(state.debug));
   itemsEl.innerHTML = "";
@@ -296,6 +430,10 @@ function render() {
   ITEMS.forEach((item) => {
     itemsEl.append(renderItem(item));
   });
+
+  updateAffordabilityDisplay();
+  updateCircleFillVisuals();
+  updateDebugAdvisorDisplay();
 }
 
 debugToggleEl.addEventListener("click", () => {
