@@ -87,6 +87,7 @@ body {
   color: #e5e7eb;
   font-size: 0.9rem;
   line-height: 1.35;
+  white-space: pre-line;
   display: none;
 }
 
@@ -110,6 +111,12 @@ body {
   border-radius: 0.75rem;
   padding: 0.75rem;
   background: #2a3140;
+}
+
+
+.buy-button.recommended-action {
+  outline: 3px solid #22c55e;
+  outline-offset: 0;
 }
 
 .circle {

@@ -2,6 +2,10 @@ const STORAGE_KEY = "incremental-clicker-state-v1";
 const AUTOCLICK_TICK_MS = 100;
 const AUTOCLICK_BASE_DELAY_SECONDS = 10;
 const AUTOCLICK_FLASH_MS = 140;
+const UNLOCK_ADVISOR_BONUS_CLICKS = 1;
+const FIRST_MANAGER_ADVISOR_BOOST = 1.15;
+const FIRST_MANAGER_PREFERENCE_MULTIPLIER = 1.35;
+const UNLOCK_WHEN_FIRST_MANAGER_AVAILABLE_MULTIPLIER = 0.7;
 
 const ITEMS = Array.from({ length: 10 }, (_, index) => {
   const baseIncome = Number((0.1 * Math.pow(1.8, index)).toFixed(2));
@@ -181,31 +185,64 @@ function updateAffordabilityDisplay() {
   });
 }
 
+function updateRecommendedHighlight(recommendedCandidate) {
+  const buttons = itemsEl.querySelectorAll(".buy-button");
+  buttons.forEach((button) => {
+    button.classList.remove("recommended-action");
+  });
+
+  if (!state.debug || !recommendedCandidate) {
+    return;
+  }
+
+  const role = recommendedCandidate.type === "Manager" ? "manager" : "item";
+  const targetButton = itemsEl.querySelector(
+    `.buy-button[data-role="${role}"][data-item-id="${recommendedCandidate.itemId}"]`,
+  );
+
+  if (targetButton) {
+    targetButton.classList.add("recommended-action");
+  }
+}
+
 function getBestNextPurchase() {
   const candidates = [];
 
   ITEMS.forEach((item) => {
     const itemCost = getNextCost(item.id);
-    const itemDpsGain = item.baseIncome * getManagerClicksPerSecond(item.id);
+    const isFirstUnlock = state.levels[item.id] === 0;
+    const unlockBonusCash = isFirstUnlock ? item.baseIncome * UNLOCK_ADVISOR_BONUS_CLICKS : 0;
+    const unlockBonusDps = unlockBonusCash / AUTOCLICK_BASE_DELAY_SECONDS;
+    const itemDpsGain = (item.baseIncome * getManagerClicksPerSecond(item.id)) + unlockBonusDps;
     if (itemCost > 0) {
       candidates.push({
+        itemId: item.id,
         type: "Item",
         label: `${item.name} level +1`,
         cost: itemCost,
         dpsGain: itemDpsGain,
+        unlockBonusCash,
         efficiency: itemDpsGain / itemCost,
+        isFirstUnlock,
+        isFirstManager: false,
       });
     }
 
     if (isUnlocked(item.id)) {
       const managerCost = getNextManagerCost(item.id);
-      const managerDpsGain = getClickValue(item.id) / AUTOCLICK_BASE_DELAY_SECONDS;
+      const isFirstManager = state.managers[item.id] === 0;
+      const managerDpsGain = (getClickValue(item.id) / AUTOCLICK_BASE_DELAY_SECONDS)
+        * (isFirstManager ? FIRST_MANAGER_ADVISOR_BOOST : 1);
       candidates.push({
+        itemId: item.id,
         type: "Manager",
         label: `${item.name} manager +1`,
         cost: managerCost,
         dpsGain: managerDpsGain,
+        unlockBonusCash: 0,
         efficiency: managerDpsGain / managerCost,
+        isFirstUnlock: false,
+        isFirstManager,
       });
     }
   });
@@ -214,7 +251,22 @@ function getBestNextPurchase() {
     return null;
   }
 
-  candidates.sort((a, b) => b.efficiency - a.efficiency);
+  const hasFirstManagerCandidate = candidates.some((candidate) => candidate.isFirstManager);
+  candidates.forEach((candidate) => {
+    let advisorScore = candidate.efficiency;
+
+    if (candidate.isFirstManager) {
+      advisorScore *= FIRST_MANAGER_PREFERENCE_MULTIPLIER;
+    }
+
+    if (hasFirstManagerCandidate && candidate.isFirstUnlock) {
+      advisorScore *= UNLOCK_WHEN_FIRST_MANAGER_AVAILABLE_MULTIPLIER;
+    }
+
+    candidate.advisorScore = advisorScore;
+  });
+
+  candidates.sort((a, b) => b.advisorScore - a.advisorScore);
   return candidates[0];
 }
 
@@ -222,6 +274,7 @@ function updateDebugAdvisorDisplay() {
   if (!state.debug) {
     debugAdvisorEl.classList.remove("is-visible");
     debugAdvisorEl.textContent = "";
+    updateRecommendedHighlight(null);
     return;
   }
 
@@ -230,11 +283,16 @@ function updateDebugAdvisorDisplay() {
 
   if (!best || best.efficiency <= 0) {
     debugAdvisorEl.textContent = "Debug advisor: No positive $/sec purchase available right now.";
+    updateRecommendedHighlight(null);
     return;
   }
 
   const affordability = state.money >= best.cost ? "Affordable now" : `Need ${formatDollars(best.cost - state.money)} more`;
-  debugAdvisorEl.textContent = `Debug advisor\nBest next buy: ${best.type} - ${best.label}\nCost: ${formatDollars(best.cost)}\n$/sec gain: ${formatDollars(best.dpsGain)}\nEfficiency: ${best.efficiency.toFixed(4)} $/sec per $\n${affordability}`;
+  const bonusLine = best.unlockBonusCash > 0
+    ? `\nUnlock bonus (${UNLOCK_ADVISOR_BONUS_CLICKS} clicks): ${formatDollars(best.unlockBonusCash)}`
+    : "";
+  debugAdvisorEl.textContent = `Debug advisor\nBest next buy: ${best.type} - ${best.label}\nCost: ${formatDollars(best.cost)}\n$/sec gain: ${formatDollars(best.dpsGain)}${bonusLine}\nEfficiency: ${best.efficiency.toFixed(4)} $/sec per $\n${affordability}`;
+  updateRecommendedHighlight(best);
 }
 
 function getClickValue(itemId) {
