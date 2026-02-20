@@ -41,6 +41,17 @@ body {
   font-weight: 700;
 }
 
+.debug-toggle {
+  margin-top: 0.7rem;
+  border: 1px solid #8ea2ff;
+  border-radius: 0.45rem;
+  padding: 0.4rem 0.65rem;
+  background: #2a3140;
+  color: #e5e7eb;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .instructions {
   margin: 0 0 1rem;
   opacity: 0.9;

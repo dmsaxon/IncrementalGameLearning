@@ -22,3 +22,11 @@ A small browser-based incremental clicker game built with vanilla HTML, CSS, and
 - `index.html` - page structure
 - `styles.css` - visual styling and circle fill animation
 - `script.js` - game state, economy, upgrades, managers, persistence
+
+## Roadmap
+
+### Balance tuning
+
+- Revisit upgrade and manager cost growth curves to smooth early/mid-game pacing.
+- Tune manager speed scaling to keep automation strong but not runaway.
+- Add simple balancing checkpoints (time-to-first-manager, time-to-unlock-next-item).

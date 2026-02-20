@@ -24,10 +24,12 @@ const state = {
   managers: ITEMS.map(() => 0),
   managerProgress: ITEMS.map(() => 0),
   managerFlashUntil: ITEMS.map(() => 0),
+  debug: false,
 };
 
 const balanceEl = document.getElementById("balance");
 const itemsEl = document.getElementById("items");
+const debugToggleEl = document.getElementById("debug-toggle");
 
 function formatDollars(value) {
   return `$${value.toFixed(2)}`;
@@ -77,9 +79,26 @@ function loadState() {
         return Math.max(0, Math.floor(managerValue));
       });
     }
+
+    if (typeof parsed.debug === "boolean") {
+      state.debug = parsed.debug;
+    }
   } catch {
     localStorage.removeItem(STORAGE_KEY);
   }
+}
+
+function getManagerClicksPerSecond(itemId) {
+  return state.managers[itemId] / AUTOCLICK_BASE_DELAY_SECONDS;
+}
+
+function getDebugDollarsPerSecond(itemId) {
+  const managerClicksPerSecond = getManagerClicksPerSecond(itemId);
+  if (managerClicksPerSecond <= 0) {
+    return null;
+  }
+
+  return Number((getClickValue(itemId) / managerClicksPerSecond).toFixed(2));
 }
 
 function getClickValue(itemId) {
@@ -233,6 +252,16 @@ function renderItem(item) {
 
   card.append(circle, name, income, status, managerStatus);
 
+  if (state.debug) {
+    const debugRate = document.createElement("p");
+    debugRate.className = "item-status";
+    const debugValue = getDebugDollarsPerSecond(item.id);
+    debugRate.textContent = debugValue === null
+      ? "Debug $/sec: N/A (needs manager clicks/sec > 0)"
+      : `Debug $/sec: ${formatDollars(debugValue)}`;
+    card.append(debugRate);
+  }
+
   const buyButton = document.createElement("button");
   buyButton.className = "buy-button";
   buyButton.type = "button";
@@ -260,12 +289,20 @@ function renderItem(item) {
 
 function render() {
   balanceEl.textContent = formatDollars(state.money);
+  debugToggleEl.textContent = state.debug ? "Debug: ON" : "Debug: OFF";
+  debugToggleEl.setAttribute("aria-pressed", String(state.debug));
   itemsEl.innerHTML = "";
 
   ITEMS.forEach((item) => {
     itemsEl.append(renderItem(item));
   });
 }
+
+debugToggleEl.addEventListener("click", () => {
+  state.debug = !state.debug;
+  saveState();
+  render();
+});
 
 loadState();
 render();
