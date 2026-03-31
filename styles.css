@@ -139,6 +139,59 @@ body {
   touch-action: manipulation;
 }
 
+@keyframes circle-press {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(0.88); }
+  100% { transform: scale(1); }
+}
+
+/* Duration matches CLICK_FLASH_DURATION_MS in script.js */
+.circle.is-pressed {
+  animation: circle-press 0.22s ease-out;
+}
+
+@keyframes float-up-fade {
+  0%   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-52px); }
+}
+
+.float-text {
+  position: fixed;
+  pointer-events: none;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: #f4da4a;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75);
+  animation: float-up-fade 0.85s ease-out forwards;
+  z-index: 1000;
+  white-space: nowrap;
+}
+
+.onboarding-hint {
+  margin: 0 0 0.75rem;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid #f4da4a;
+  border-radius: 0.55rem;
+  background: rgba(244, 218, 74, 0.08);
+  color: #f4da4a;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.onboarding-hint.is-hidden {
+  display: none;
+}
+
+.current-goal {
+  margin: 0 0 0.9rem;
+  font-size: 0.92rem;
+  opacity: 0.9;
+}
+
+.current-goal strong {
+  color: #8ea2ff;
+}
+
 .circle:disabled {
   cursor: not-allowed;
   opacity: 0.55;
