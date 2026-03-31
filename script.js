@@ -2,6 +2,7 @@ const STORAGE_KEY = "incremental-clicker-state-v1";
 const AUTOCLICK_TICK_MS = 100;
 const AUTOCLICK_BASE_DELAY_SECONDS = 10;
 const AUTOCLICK_FLASH_MS = 140;
+const CLICK_FLASH_DURATION_MS = 220;
 const UNLOCK_ADVISOR_BONUS_CLICKS = 1;
 const FIRST_MANAGER_ADVISOR_BOOST = 1.15;
 const FIRST_MANAGER_PREFERENCE_MULTIPLIER = 1.35;
@@ -27,6 +28,8 @@ const state = {
   managers: ITEMS.map(() => 0),
   managerProgress: ITEMS.map(() => 0),
   managerFlashUntil: ITEMS.map(() => 0),
+  clickFlashUntil: ITEMS.map(() => 0),
+  hasFirstPurchase: false,
   debug: false,
 };
 
@@ -35,6 +38,8 @@ const dpsEl = document.getElementById("dps");
 const itemsEl = document.getElementById("items");
 const debugToggleEl = document.getElementById("debug-toggle");
 const debugAdvisorEl = document.getElementById("debug-advisor");
+const onboardingHintEl = document.getElementById("onboarding-hint");
+const currentGoalTextEl = document.getElementById("current-goal-text");
 
 function formatDollars(value) {
   return `$${value.toFixed(2)}`;
@@ -88,6 +93,10 @@ function loadState() {
     if (typeof parsed.debug === "boolean") {
       state.debug = parsed.debug;
     }
+
+    if (typeof parsed.hasFirstPurchase === "boolean") {
+      state.hasFirstPurchase = parsed.hasFirstPurchase;
+    }
   } catch {
     localStorage.removeItem(STORAGE_KEY);
   }
@@ -135,6 +144,12 @@ function updateCircleFillVisuals() {
     const circle = itemsEl.querySelector(`.circle[data-item-id="${item.id}"]`);
     if (!circle) {
       return;
+    }
+
+    if (state.clickFlashUntil[item.id] > now) {
+      circle.classList.add("is-pressed");
+    } else {
+      circle.classList.remove("is-pressed");
     }
 
     const unlocked = isUnlocked(item.id);
@@ -324,12 +339,61 @@ function isUnlocked(itemId) {
   return state.levels[itemId] > 0;
 }
 
+function spawnFloatText(x, y, amount) {
+  const el = document.createElement("div");
+  el.className = "float-text";
+  el.textContent = `+${formatDollars(amount)}`;
+  el.style.left = `${x}px`;
+  el.style.top = `${y}px`;
+  document.body.appendChild(el);
+  el.addEventListener("animationend", () => el.remove());
+}
+
+function getCurrentGoalText() {
+  const totalManagers = state.managers.reduce((sum, m) => sum + m, 0);
+  const unlockedCount = state.levels.filter((l) => l > 0).length;
+
+  if (totalManagers === 0) {
+    if (!state.hasFirstPurchase) {
+      return "Buy your first upgrade";
+    }
+    return "Hire your first manager to autoclick for you";
+  }
+
+  if (unlockedCount <= 2) {
+    return "Unlock more circles to boost earnings";
+  }
+
+  return "Upgrade circles and hire more managers!";
+}
+
+function updateCurrentGoal() {
+  currentGoalTextEl.textContent = getCurrentGoalText();
+}
+
+function updateOnboardingHint() {
+  if (state.hasFirstPurchase) {
+    onboardingHintEl.classList.add("is-hidden");
+  } else {
+    onboardingHintEl.classList.remove("is-hidden");
+  }
+}
+
 function clickItem(itemId) {
   if (!isUnlocked(itemId)) {
     return;
   }
 
-  state.money = Number((state.money + getClickValue(itemId)).toFixed(2));
+  const value = getClickValue(itemId);
+
+  const circle = itemsEl.querySelector(`.circle[data-item-id="${itemId}"]`);
+  if (circle) {
+    const rect = circle.getBoundingClientRect();
+    spawnFloatText(rect.left + rect.width / 2, rect.top + rect.height / 4, value);
+  }
+
+  state.clickFlashUntil[itemId] = Date.now() + CLICK_FLASH_DURATION_MS;
+  state.money = Number((state.money + value).toFixed(2));
   saveState();
   render();
 }
@@ -342,6 +406,7 @@ function buyItem(itemId) {
 
   state.money = Number((state.money - nextCost).toFixed(2));
   state.levels[itemId] += 1;
+  state.hasFirstPurchase = true;
   saveState();
   render();
 }
@@ -358,6 +423,7 @@ function buyManager(itemId) {
 
   state.money = Number((state.money - managerCost).toFixed(2));
   state.managers[itemId] += 1;
+  state.hasFirstPurchase = true;
   saveState();
   render();
 }
@@ -491,6 +557,8 @@ function render() {
   updateAffordabilityDisplay();
   updateCircleFillVisuals();
   updateDebugAdvisorDisplay();
+  updateOnboardingHint();
+  updateCurrentGoal();
 }
 
 debugToggleEl.addEventListener("click", () => {
